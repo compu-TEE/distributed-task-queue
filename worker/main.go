@@ -5,12 +5,13 @@ import (
 	//"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime)
-	workerID := "worker-1"
+	workerID := os.Args[1]
 	for {
 		resp, err := http.Get("http://localhost:8080/ping?worker=" + workerID)
 		if err != nil {
