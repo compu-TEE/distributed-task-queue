@@ -9,6 +9,13 @@ type PingResponse struct {
 }
 
 type Task struct {
-	ID      string `json:"id"`
+	ID      int    `json:"id"`
 	Payload string `json:"payload"`
+	Status  string `json:"status"`
 }
+
+const (
+	Pending    = "pending"
+	InProgress = "in_progress"
+	Completed  = "completed"
+)

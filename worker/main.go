@@ -1,14 +1,18 @@
 package main
 
 import (
+	"bytes"
+	"dtq/internal/types"
 	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"time"
-
-	"dtq/internal/types"
 )
+
+type AckRequest struct {
+	TaskID int `json:"task_id"`
+}
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime)
@@ -42,13 +46,34 @@ func main() {
 		}
 
 		log.Println(
+			"Executing task",
 			task.ID,
-			"processed by worker",
+			"on worker",
 			workerID,
 			"Payload:",
 			task.Payload,
 		)
 
 		time.Sleep(3 * time.Second)
+		log.Println("Sending ACK for task", task.ID)
+		ack := AckRequest{
+			TaskID: task.ID,
+		}
+		jsonData, err := json.Marshal(ack)
+		if err != nil {
+			log.Println("Failed to marshal ACK:", err)
+			continue
+		}
+
+		ackResp, err := http.Post(
+			"http://localhost:8080/ack",
+			"application/json",
+			bytes.NewBuffer(jsonData),
+		)
+		if err != nil {
+			log.Println("Failed to send ACK:", err)
+			continue
+		}
+		ackResp.Body.Close()
 	}
 }
