@@ -6,7 +6,11 @@ import (
 	"dtq/internal/types"
 	"log"
 	"net/http"
+	"sync"
+	"time"
 )
+
+var mu sync.Mutex
 
 type AckRequest struct {
 	TaskID int `json:"task_id"`
@@ -29,6 +33,8 @@ func task(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	mu.Lock()
+	defer mu.Unlock()
 	var newTask types.Task
 	if err := json.NewDecoder(r.Body).Decode(&newTask); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -58,6 +64,8 @@ func poll(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	mu.Lock()
+	defer mu.Unlock()
 	if len(pendingTasks) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -69,9 +77,11 @@ func poll(w http.ResponseWriter, r *http.Request) {
 	}
 	delete(pendingTasks, task.ID)
 	task.Status = types.InProgress
+	task.AssignedAt = time.Now()
+	workerID := r.URL.Query().Get("worker")
+	task.WorkerID = workerID
 	inProgressTasks[task.ID] = task
 	log.Println("Task", task.ID, "moved to in_progress")
-	workerID := r.URL.Query().Get("worker")
 	log.Println("Assigned task", task.ID, "to worker", workerID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(task)
@@ -82,7 +92,8 @@ func ack(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
+	mu.Lock()
+	defer mu.Unlock()
 	var ackReq AckRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&ackReq); err != nil {
@@ -104,12 +115,32 @@ func ack(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func visibilityTimeoutChecker() {
+	for {
+		mu.Lock()
+		for id, task := range inProgressTasks {
+			if time.Since(task.AssignedAt) > 10*time.Second {
+				log.Println("Task", id, "timed out. Requeueing....")
+				task.Status = types.Pending
+				task.AssignedAt = time.Time{}
+				task.WorkerID = ""
+
+				pendingTasks[id] = task
+				delete(inProgressTasks, id)
+			}
+		}
+		mu.Unlock()
+		time.Sleep(1 * time.Second)
+	}
+}
+
 func main() {
 	log.Println("Broker running on port 8080")
 	http.HandleFunc("/ping", ping)
 	http.HandleFunc("/task", task)
 	http.HandleFunc("/poll", poll)
 	http.HandleFunc("/ack", ack)
+	go visibilityTimeoutChecker()
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Println("Server failed: ", err)
