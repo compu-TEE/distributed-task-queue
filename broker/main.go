@@ -1,24 +1,33 @@
 package main
 
 import (
-	"encoding/json"
-	//"fmt"
+	"dtq/internal/persistence"
 	"dtq/internal/types"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
 	"time"
 )
 
-var mu sync.Mutex
-
 type AckRequest struct {
 	TaskID int `json:"task_id"`
 }
 
-var pendingTasks = make(map[int]types.Task)
-var inProgressTasks = make(map[int]types.Task)
-var completedTasks = make(map[int]types.Task)
+type BrokerState struct {
+	PendingTasks    map[int]types.Task
+	InProgressTasks map[int]types.Task
+	CompletedTasks  map[int]types.Task
+
+	Mutex sync.Mutex
+}
+
+var brokerState = BrokerState{
+	PendingTasks:    make(map[int]types.Task),
+	InProgressTasks: make(map[int]types.Task),
+	CompletedTasks:  make(map[int]types.Task),
+}
 
 func ping(w http.ResponseWriter, r *http.Request) {
 	workerID := r.URL.Query().Get("worker")
@@ -33,28 +42,32 @@ func task(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	mu.Lock()
-	defer mu.Unlock()
+	brokerState.Mutex.Lock()
+	defer brokerState.Mutex.Unlock()
 	var newTask types.Task
 	if err := json.NewDecoder(r.Body).Decode(&newTask); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
-	if _, exists := pendingTasks[newTask.ID]; exists {
+	if _, exists := brokerState.PendingTasks[newTask.ID]; exists {
 		http.Error(w, "Task ID already exists", http.StatusBadRequest)
 		return
 	}
-	if _, exists := inProgressTasks[newTask.ID]; exists {
+	if _, exists := brokerState.InProgressTasks[newTask.ID]; exists {
 		http.Error(w, "Task ID already exists", http.StatusBadRequest)
 		return
 	}
-	if _, exists := completedTasks[newTask.ID]; exists {
+	if _, exists := brokerState.CompletedTasks[newTask.ID]; exists {
 		http.Error(w, "Task ID already exists", http.StatusBadRequest)
 		return
 	}
 	newTask.Status = types.Pending
-	pendingTasks[newTask.ID] = newTask
-	log.Println(newTask.ID, "added to task queue", "Payload:", newTask.Payload, "Total Pending tasks:", len(pendingTasks))
+	brokerState.PendingTasks[newTask.ID] = newTask
+	err := persistence.AppendLog(fmt.Sprintf("ENQUEUE %d %s", newTask.ID, newTask.Payload))
+	if err != nil {
+		log.Println("Failed to persist enqueue:", err)
+	}
+	log.Println(newTask.ID, "added to task queue", "Payload:", newTask.Payload, "Total Pending tasks:", len(brokerState.PendingTasks))
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(newTask)
 }
@@ -64,23 +77,27 @@ func poll(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	mu.Lock()
-	defer mu.Unlock()
-	if len(pendingTasks) == 0 {
+	brokerState.Mutex.Lock()
+	defer brokerState.Mutex.Unlock()
+	if len(brokerState.PendingTasks) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	var task types.Task
-	for _, t := range pendingTasks {
+	for _, t := range brokerState.PendingTasks {
 		task = t
 		break
 	}
-	delete(pendingTasks, task.ID)
+	delete(brokerState.PendingTasks, task.ID)
 	task.Status = types.InProgress
 	task.AssignedAt = time.Now()
 	workerID := r.URL.Query().Get("worker")
 	task.WorkerID = workerID
-	inProgressTasks[task.ID] = task
+	brokerState.InProgressTasks[task.ID] = task
+	err := persistence.AppendLog(fmt.Sprintf("ASSIGN %d %s", task.ID, task.WorkerID))
+	if err != nil {
+		log.Println("Failed to persist dequeue:", err)
+	}
 	log.Println("Task", task.ID, "moved to in_progress")
 	log.Println("Assigned task", task.ID, "to worker", workerID)
 	w.Header().Set("Content-Type", "application/json")
@@ -92,8 +109,8 @@ func ack(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	mu.Lock()
-	defer mu.Unlock()
+	brokerState.Mutex.Lock()
+	defer brokerState.Mutex.Unlock()
 	var ackReq AckRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&ackReq); err != nil {
@@ -101,47 +118,71 @@ func ack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, exists := inProgressTasks[ackReq.TaskID]
+	task, exists := brokerState.InProgressTasks[ackReq.TaskID]
 
 	if !exists {
 		http.Error(w, "Task not found", http.StatusNotFound)
 		return
 	}
 
-	delete(inProgressTasks, ackReq.TaskID)
+	delete(brokerState.InProgressTasks, ackReq.TaskID)
 	task.Status = types.Completed
-	completedTasks[task.ID] = task
+	brokerState.CompletedTasks[task.ID] = task
+	err := persistence.AppendLog(fmt.Sprintf("ACK %d", task.ID))
+	if err != nil {
+		log.Println("Failed to persist ACK:", err)
+	}
 	log.Println("Task", task.ID, "marked completed")
 	w.WriteHeader(http.StatusOK)
 }
 
 func visibilityTimeoutChecker() {
 	for {
-		mu.Lock()
-		for id, task := range inProgressTasks {
+		brokerState.Mutex.Lock()
+		for id, task := range brokerState.InProgressTasks {
 			if time.Since(task.AssignedAt) > 10*time.Second {
 				log.Println("Task", id, "timed out. Requeueing....")
 				task.Status = types.Pending
 				task.AssignedAt = time.Time{}
 				task.WorkerID = ""
 
-				pendingTasks[id] = task
-				delete(inProgressTasks, id)
+				brokerState.PendingTasks[id] = task
+				delete(brokerState.InProgressTasks, id)
 			}
 		}
-		mu.Unlock()
+		brokerState.Mutex.Unlock()
 		time.Sleep(1 * time.Second)
 	}
 }
 
 func main() {
-	log.Println("Broker running on port 8080")
 	http.HandleFunc("/ping", ping)
 	http.HandleFunc("/task", task)
 	http.HandleFunc("/poll", poll)
 	http.HandleFunc("/ack", ack)
 	go visibilityTimeoutChecker()
-	err := http.ListenAndServe(":8080", nil)
+	replayTasks, err := persistence.ReplayLog()
+	if err != nil {
+		log.Println(err)
+	}
+	for id, task := range replayTasks {
+		if task.Status == types.Pending {
+			brokerState.PendingTasks[id] = task
+		} else if task.Status == types.Completed {
+			brokerState.CompletedTasks[id] = task
+		}
+	}
+	log.Printf(
+		"Recovered %d pending tasks and %d completed tasks",
+		len(brokerState.PendingTasks),
+		len(brokerState.CompletedTasks),
+	)
+	log.Println("Broker running on port 8080")
+	err = persistence.AppendLog("BROKER_STARTED")
+	if err != nil {
+		log.Println(err)
+	}
+	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Println("Server failed: ", err)
 	}

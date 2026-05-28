@@ -1,6 +1,8 @@
 package types
 
-import "time"
+import (
+	"time"
+)
 
 type PingRequest struct {
 	Message string `json:"message"`
