@@ -1,7 +1,5 @@
-broker.log
+broker/dtq-broker
 
-dtq-broker
+broker/broker.log
 
-go.mod
-
-.vscode
+.vscode/
