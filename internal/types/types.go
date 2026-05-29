@@ -18,10 +18,13 @@ type Task struct {
 	Status     string    `json:"status"`
 	AssignedAt time.Time `json:"assigned_at,omitempty"`
 	WorkerID   string    `json:"worker_id,omitempty"`
+	RetryCount int       `json:"retry_count"`
+	MaxRetries int       `json:"max_retries"`
 }
 
 const (
 	Pending    = "pending"
 	InProgress = "in_progress"
 	Completed  = "completed"
+	DeadLetter = "dead_letter"
 )

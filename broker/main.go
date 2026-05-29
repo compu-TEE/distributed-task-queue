@@ -19,6 +19,7 @@ type BrokerState struct {
 	PendingTasks    map[int]types.Task
 	InProgressTasks map[int]types.Task
 	CompletedTasks  map[int]types.Task
+	DeadLetterTasks map[int]types.Task
 
 	Mutex sync.Mutex
 }
@@ -27,6 +28,7 @@ var brokerState = BrokerState{
 	PendingTasks:    make(map[int]types.Task),
 	InProgressTasks: make(map[int]types.Task),
 	CompletedTasks:  make(map[int]types.Task),
+	DeadLetterTasks: make(map[int]types.Task),
 }
 
 func ping(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +64,8 @@ func task(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	newTask.Status = types.Pending
+	newTask.RetryCount = 0
+	newTask.MaxRetries = 3
 	brokerState.PendingTasks[newTask.ID] = newTask
 	err := persistence.AppendLog(fmt.Sprintf("ENQUEUE %d %s", newTask.ID, newTask.Payload))
 	if err != nil {
@@ -141,13 +145,33 @@ func visibilityTimeoutChecker() {
 		brokerState.Mutex.Lock()
 		for id, task := range brokerState.InProgressTasks {
 			if time.Since(task.AssignedAt) > 10*time.Second {
-				log.Println("Task", id, "timed out. Requeueing....")
-				task.Status = types.Pending
-				task.AssignedAt = time.Time{}
-				task.WorkerID = ""
+				task.RetryCount++
 
-				brokerState.PendingTasks[id] = task
+				log.Println("Task", id, "Retry count:", task.RetryCount, task.MaxRetries)
+				err := persistence.AppendLog(fmt.Sprintf("RETRY %d %d", task.ID, task.RetryCount))
+				if err != nil {
+					log.Println("Failed to persist retry:", err)
+				}
 				delete(brokerState.InProgressTasks, id)
+
+				if task.RetryCount >= task.MaxRetries {
+					task.Status = types.DeadLetter
+
+					brokerState.DeadLetterTasks[id] = task
+					err := persistence.AppendLog(fmt.Sprintf("DLQ %d", task.ID))
+					if err != nil {
+						log.Println("Failed to persist DLQ:", err)
+					}
+					log.Println("Task", id, "moved to dead letter queue")
+				} else {
+					task.Status = types.Pending
+					task.AssignedAt = time.Time{}
+					task.WorkerID = ""
+
+					brokerState.PendingTasks[id] = task
+
+					log.Println("Task", id, "requeued")
+				}
 			}
 		}
 		brokerState.Mutex.Unlock()
@@ -155,11 +179,20 @@ func visibilityTimeoutChecker() {
 	}
 }
 
+func dlq(w http.ResponseWriter, r *http.Request) {
+	brokerState.Mutex.Lock()
+	defer brokerState.Mutex.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(brokerState.DeadLetterTasks)
+}
+
 func main() {
 	http.HandleFunc("/ping", ping)
 	http.HandleFunc("/task", task)
 	http.HandleFunc("/poll", poll)
 	http.HandleFunc("/ack", ack)
+	http.HandleFunc("/dlq", dlq)
 	go visibilityTimeoutChecker()
 	replayTasks, err := persistence.ReplayLog()
 	if err != nil {
@@ -170,12 +203,15 @@ func main() {
 			brokerState.PendingTasks[id] = task
 		} else if task.Status == types.Completed {
 			brokerState.CompletedTasks[id] = task
+		} else if task.Status == types.DeadLetter {
+			brokerState.DeadLetterTasks[id] = task
 		}
 	}
 	log.Printf(
-		"Recovered %d pending tasks and %d completed tasks",
+		"Recovered %d pending tasks and %d completed tasks %d dlq",
 		len(brokerState.PendingTasks),
 		len(brokerState.CompletedTasks),
+		len(brokerState.DeadLetterTasks),
 	)
 	log.Println("Broker running on port 8080")
 	err = persistence.AppendLog("BROKER_STARTED")

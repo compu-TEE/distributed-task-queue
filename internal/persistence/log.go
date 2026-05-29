@@ -64,9 +64,11 @@ func ReplayLog() (map[int]types.Task, error) {
 			payload := parts[2]
 
 			replayTasks[taskID] = types.Task{
-				ID:      taskID,
-				Payload: payload,
-				Status:  types.Pending,
+				ID:         taskID,
+				Payload:    payload,
+				Status:     types.Pending,
+				RetryCount: 0,
+				MaxRetries: 3,
 			}
 		}
 
@@ -80,6 +82,39 @@ func ReplayLog() (map[int]types.Task, error) {
 			task := replayTasks[taskID]
 
 			task.Status = types.Completed
+
+			replayTasks[taskID] = task
+		}
+
+		if eventType == "RETRY" {
+			taskID, err := strconv.Atoi(parts[1])
+
+			if err != nil {
+				return nil, err
+			}
+
+			retryCount, err := strconv.Atoi(parts[2])
+
+			if err != nil {
+				return nil, err
+			}
+
+			task := replayTasks[taskID]
+
+			task.RetryCount = retryCount
+
+			replayTasks[taskID] = task
+		}
+		if eventType == "DLQ" {
+			taskID, err := strconv.Atoi(parts[1])
+
+			if err != nil {
+				return nil, err
+			}
+
+			task := replayTasks[taskID]
+
+			task.Status = types.DeadLetter
 
 			replayTasks[taskID] = task
 		}
