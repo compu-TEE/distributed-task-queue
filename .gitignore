@@ -1,5 +1,14 @@
-broker/dtq-broker
+# Binaries
+dtq-broker
+*.exe
+*.out
 
-broker/broker.log
+# Logs
+*.log
 
+# IDE
 .vscode/
+.idea/
+
+# OS
+.DS_Store

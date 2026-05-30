@@ -218,6 +218,7 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
+	go StartGRPCServer()
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Println("Server failed: ", err)

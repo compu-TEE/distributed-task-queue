@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package broker;
+
+option go_package = "./proto";
+
+message PingRequest {
+    string worker_id = 1;
+}
+
+message PingResponse {
+    string message = 1;
+}
+
+service BrokerService {
+    rpc Ping(PingRequest) returns (PingResponse);
+}
