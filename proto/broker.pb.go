@@ -7,12 +7,11 @@
 package proto
 
 import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -110,6 +109,338 @@ func (x *PingResponse) GetMessage() string {
 	return ""
 }
 
+type Task struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Payload       string                 `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Task) Reset() {
+	*x = Task{}
+	mi := &file_proto_broker_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Task) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Task) ProtoMessage() {}
+
+func (x *Task) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_broker_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Task.ProtoReflect.Descriptor instead.
+func (*Task) Descriptor() ([]byte, []int) {
+	return file_proto_broker_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Task) GetId() int32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *Task) GetPayload() string {
+	if x != nil {
+		return x.Payload
+	}
+	return ""
+}
+
+type SubmitTaskRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Payload       string                 `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubmitTaskRequest) Reset() {
+	*x = SubmitTaskRequest{}
+	mi := &file_proto_broker_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitTaskRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitTaskRequest) ProtoMessage() {}
+
+func (x *SubmitTaskRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_broker_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitTaskRequest.ProtoReflect.Descriptor instead.
+func (*SubmitTaskRequest) Descriptor() ([]byte, []int) {
+	return file_proto_broker_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *SubmitTaskRequest) GetId() int32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *SubmitTaskRequest) GetPayload() string {
+	if x != nil {
+		return x.Payload
+	}
+	return ""
+}
+
+type SubmitTaskResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SubmitTaskResponse) Reset() {
+	*x = SubmitTaskResponse{}
+	mi := &file_proto_broker_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SubmitTaskResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitTaskResponse) ProtoMessage() {}
+
+func (x *SubmitTaskResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_broker_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitTaskResponse.ProtoReflect.Descriptor instead.
+func (*SubmitTaskResponse) Descriptor() ([]byte, []int) {
+	return file_proto_broker_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SubmitTaskResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type PollTaskRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WorkerId      string                 `protobuf:"bytes,1,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PollTaskRequest) Reset() {
+	*x = PollTaskRequest{}
+	mi := &file_proto_broker_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PollTaskRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PollTaskRequest) ProtoMessage() {}
+
+func (x *PollTaskRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_broker_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PollTaskRequest.ProtoReflect.Descriptor instead.
+func (*PollTaskRequest) Descriptor() ([]byte, []int) {
+	return file_proto_broker_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *PollTaskRequest) GetWorkerId() string {
+	if x != nil {
+		return x.WorkerId
+	}
+	return ""
+}
+
+type PollTaskResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Task          *Task                  `protobuf:"bytes,1,opt,name=task,proto3" json:"task,omitempty"`
+	Found         bool                   `protobuf:"varint,2,opt,name=found,proto3" json:"found,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PollTaskResponse) Reset() {
+	*x = PollTaskResponse{}
+	mi := &file_proto_broker_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PollTaskResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PollTaskResponse) ProtoMessage() {}
+
+func (x *PollTaskResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_broker_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PollTaskResponse.ProtoReflect.Descriptor instead.
+func (*PollTaskResponse) Descriptor() ([]byte, []int) {
+	return file_proto_broker_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *PollTaskResponse) GetTask() *Task {
+	if x != nil {
+		return x.Task
+	}
+	return nil
+}
+
+func (x *PollTaskResponse) GetFound() bool {
+	if x != nil {
+		return x.Found
+	}
+	return false
+}
+
+type AckTaskRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        int32                  `protobuf:"varint,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AckTaskRequest) Reset() {
+	*x = AckTaskRequest{}
+	mi := &file_proto_broker_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AckTaskRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AckTaskRequest) ProtoMessage() {}
+
+func (x *AckTaskRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_broker_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AckTaskRequest.ProtoReflect.Descriptor instead.
+func (*AckTaskRequest) Descriptor() ([]byte, []int) {
+	return file_proto_broker_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *AckTaskRequest) GetTaskId() int32 {
+	if x != nil {
+		return x.TaskId
+	}
+	return 0
+}
+
+type AckTaskResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AckTaskResponse) Reset() {
+	*x = AckTaskResponse{}
+	mi := &file_proto_broker_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AckTaskResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AckTaskResponse) ProtoMessage() {}
+
+func (x *AckTaskResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_broker_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AckTaskResponse.ProtoReflect.Descriptor instead.
+func (*AckTaskResponse) Descriptor() ([]byte, []int) {
+	return file_proto_broker_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *AckTaskResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 var File_proto_broker_proto protoreflect.FileDescriptor
 
 const file_proto_broker_proto_rawDesc = "" +
@@ -118,9 +449,30 @@ const file_proto_broker_proto_rawDesc = "" +
 	"\vPingRequest\x12\x1b\n" +
 	"\tworker_id\x18\x01 \x01(\tR\bworkerId\"(\n" +
 	"\fPingResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2B\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"0\n" +
+	"\x04Task\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x18\n" +
+	"\apayload\x18\x02 \x01(\tR\apayload\"=\n" +
+	"\x11SubmitTaskRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x18\n" +
+	"\apayload\x18\x02 \x01(\tR\apayload\".\n" +
+	"\x12SubmitTaskResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\".\n" +
+	"\x0fPollTaskRequest\x12\x1b\n" +
+	"\tworker_id\x18\x01 \x01(\tR\bworkerId\"J\n" +
+	"\x10PollTaskResponse\x12 \n" +
+	"\x04task\x18\x01 \x01(\v2\f.broker.TaskR\x04task\x12\x14\n" +
+	"\x05found\x18\x02 \x01(\bR\x05found\")\n" +
+	"\x0eAckTaskRequest\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\x05R\x06taskId\"+\n" +
+	"\x0fAckTaskResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess2\x82\x02\n" +
 	"\rBrokerService\x121\n" +
-	"\x04Ping\x12\x13.broker.PingRequest\x1a\x14.broker.PingResponseB\tZ\a./protob\x06proto3"
+	"\x04Ping\x12\x13.broker.PingRequest\x1a\x14.broker.PingResponse\x12C\n" +
+	"\n" +
+	"SubmitTask\x12\x19.broker.SubmitTaskRequest\x1a\x1a.broker.SubmitTaskResponse\x12=\n" +
+	"\bPollTask\x12\x17.broker.PollTaskRequest\x1a\x18.broker.PollTaskResponse\x12:\n" +
+	"\aAckTask\x12\x16.broker.AckTaskRequest\x1a\x17.broker.AckTaskResponseB\tZ\a./protob\x06proto3"
 
 var (
 	file_proto_broker_proto_rawDescOnce sync.Once
@@ -134,19 +486,33 @@ func file_proto_broker_proto_rawDescGZIP() []byte {
 	return file_proto_broker_proto_rawDescData
 }
 
-var file_proto_broker_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_proto_broker_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_proto_broker_proto_goTypes = []any{
-	(*PingRequest)(nil),  // 0: broker.PingRequest
-	(*PingResponse)(nil), // 1: broker.PingResponse
+	(*PingRequest)(nil),        // 0: broker.PingRequest
+	(*PingResponse)(nil),       // 1: broker.PingResponse
+	(*Task)(nil),               // 2: broker.Task
+	(*SubmitTaskRequest)(nil),  // 3: broker.SubmitTaskRequest
+	(*SubmitTaskResponse)(nil), // 4: broker.SubmitTaskResponse
+	(*PollTaskRequest)(nil),    // 5: broker.PollTaskRequest
+	(*PollTaskResponse)(nil),   // 6: broker.PollTaskResponse
+	(*AckTaskRequest)(nil),     // 7: broker.AckTaskRequest
+	(*AckTaskResponse)(nil),    // 8: broker.AckTaskResponse
 }
 var file_proto_broker_proto_depIdxs = []int32{
-	0, // 0: broker.BrokerService.Ping:input_type -> broker.PingRequest
-	1, // 1: broker.BrokerService.Ping:output_type -> broker.PingResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	2, // 0: broker.PollTaskResponse.task:type_name -> broker.Task
+	0, // 1: broker.BrokerService.Ping:input_type -> broker.PingRequest
+	3, // 2: broker.BrokerService.SubmitTask:input_type -> broker.SubmitTaskRequest
+	5, // 3: broker.BrokerService.PollTask:input_type -> broker.PollTaskRequest
+	7, // 4: broker.BrokerService.AckTask:input_type -> broker.AckTaskRequest
+	1, // 5: broker.BrokerService.Ping:output_type -> broker.PingResponse
+	4, // 6: broker.BrokerService.SubmitTask:output_type -> broker.SubmitTaskResponse
+	6, // 7: broker.BrokerService.PollTask:output_type -> broker.PollTaskResponse
+	8, // 8: broker.BrokerService.AckTask:output_type -> broker.AckTaskResponse
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_proto_broker_proto_init() }
@@ -160,7 +526,7 @@ func file_proto_broker_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_broker_proto_rawDesc), len(file_proto_broker_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

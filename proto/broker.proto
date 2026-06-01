@@ -14,4 +14,44 @@ message PingResponse {
 
 service BrokerService {
     rpc Ping(PingRequest) returns (PingResponse);
+
+    rpc SubmitTask(SubmitTaskRequest)
+        returns (SubmitTaskResponse);
+
+    rpc PollTask(PollTaskRequest)
+        returns (PollTaskResponse);
+
+    rpc AckTask(AckTaskRequest)
+        returns (AckTaskResponse);
+}
+
+message Task{
+    int32 id = 1;
+    string payload = 2;
+}
+
+message SubmitTaskRequest{
+    int32 id = 1;
+    string payload = 2;
+}
+
+message SubmitTaskResponse{
+    bool success = 1;
+}
+
+message PollTaskRequest{
+    string worker_id = 1;
+}
+
+message PollTaskResponse {
+    Task task = 1;
+    bool found = 2;
+}
+
+message AckTaskRequest {
+    int32 task_id = 1;
+}
+
+message AckTaskResponse {
+    bool success = 1;
 }

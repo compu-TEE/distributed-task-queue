@@ -31,17 +31,10 @@ func main() {
 	)
 	defer cancel()
 
-	resp, err := client.PollTask(
-		ctx,
-		&pb.PollTaskRequest{
-			WorkerId: "worker-1",
-		},
-	)
-
-	client.AckTask(
+	resp, err := client.AckTask(
 		ctx,
 		&pb.AckTaskRequest{
-			TaskId: resp.Task.Id,
+			TaskId: 1,
 		},
 	)
 
@@ -49,13 +42,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("Found:", resp.Found)
-
-	if resp.Found {
-		log.Printf(
-			"Task ID=%d Payload=%s\n",
-			resp.Task.Id,
-			resp.Task.Payload,
-		)
-	}
+	log.Println("Success:", resp.Success)
 }

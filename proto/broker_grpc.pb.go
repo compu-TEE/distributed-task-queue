@@ -8,7 +8,6 @@ package proto
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -20,7 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	BrokerService_Ping_FullMethodName = "/broker.BrokerService/Ping"
+	BrokerService_Ping_FullMethodName       = "/broker.BrokerService/Ping"
+	BrokerService_SubmitTask_FullMethodName = "/broker.BrokerService/SubmitTask"
+	BrokerService_PollTask_FullMethodName   = "/broker.BrokerService/PollTask"
+	BrokerService_AckTask_FullMethodName    = "/broker.BrokerService/AckTask"
 )
 
 // BrokerServiceClient is the client API for BrokerService service.
@@ -28,6 +30,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BrokerServiceClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
+	SubmitTask(ctx context.Context, in *SubmitTaskRequest, opts ...grpc.CallOption) (*SubmitTaskResponse, error)
+	PollTask(ctx context.Context, in *PollTaskRequest, opts ...grpc.CallOption) (*PollTaskResponse, error)
+	AckTask(ctx context.Context, in *AckTaskRequest, opts ...grpc.CallOption) (*AckTaskResponse, error)
 }
 
 type brokerServiceClient struct {
@@ -48,11 +53,44 @@ func (c *brokerServiceClient) Ping(ctx context.Context, in *PingRequest, opts ..
 	return out, nil
 }
 
+func (c *brokerServiceClient) SubmitTask(ctx context.Context, in *SubmitTaskRequest, opts ...grpc.CallOption) (*SubmitTaskResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubmitTaskResponse)
+	err := c.cc.Invoke(ctx, BrokerService_SubmitTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *brokerServiceClient) PollTask(ctx context.Context, in *PollTaskRequest, opts ...grpc.CallOption) (*PollTaskResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PollTaskResponse)
+	err := c.cc.Invoke(ctx, BrokerService_PollTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *brokerServiceClient) AckTask(ctx context.Context, in *AckTaskRequest, opts ...grpc.CallOption) (*AckTaskResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AckTaskResponse)
+	err := c.cc.Invoke(ctx, BrokerService_AckTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BrokerServiceServer is the server API for BrokerService service.
 // All implementations must embed UnimplementedBrokerServiceServer
 // for forward compatibility.
 type BrokerServiceServer interface {
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
+	SubmitTask(context.Context, *SubmitTaskRequest) (*SubmitTaskResponse, error)
+	PollTask(context.Context, *PollTaskRequest) (*PollTaskResponse, error)
+	AckTask(context.Context, *AckTaskRequest) (*AckTaskResponse, error)
 	mustEmbedUnimplementedBrokerServiceServer()
 }
 
@@ -65,6 +103,15 @@ type UnimplementedBrokerServiceServer struct{}
 
 func (UnimplementedBrokerServiceServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedBrokerServiceServer) SubmitTask(context.Context, *SubmitTaskRequest) (*SubmitTaskResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SubmitTask not implemented")
+}
+func (UnimplementedBrokerServiceServer) PollTask(context.Context, *PollTaskRequest) (*PollTaskResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PollTask not implemented")
+}
+func (UnimplementedBrokerServiceServer) AckTask(context.Context, *AckTaskRequest) (*AckTaskResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AckTask not implemented")
 }
 func (UnimplementedBrokerServiceServer) mustEmbedUnimplementedBrokerServiceServer() {}
 func (UnimplementedBrokerServiceServer) testEmbeddedByValue()                       {}
@@ -105,6 +152,60 @@ func _BrokerService_Ping_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BrokerService_SubmitTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BrokerServiceServer).SubmitTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BrokerService_SubmitTask_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BrokerServiceServer).SubmitTask(ctx, req.(*SubmitTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BrokerService_PollTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PollTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BrokerServiceServer).PollTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BrokerService_PollTask_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BrokerServiceServer).PollTask(ctx, req.(*PollTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BrokerService_AckTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AckTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BrokerServiceServer).AckTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BrokerService_AckTask_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BrokerServiceServer).AckTask(ctx, req.(*AckTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BrokerService_ServiceDesc is the grpc.ServiceDesc for BrokerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -115,6 +216,18 @@ var BrokerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _BrokerService_Ping_Handler,
+		},
+		{
+			MethodName: "SubmitTask",
+			Handler:    _BrokerService_SubmitTask_Handler,
+		},
+		{
+			MethodName: "PollTask",
+			Handler:    _BrokerService_PollTask_Handler,
+		},
+		{
+			MethodName: "AckTask",
+			Handler:    _BrokerService_AckTask_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
