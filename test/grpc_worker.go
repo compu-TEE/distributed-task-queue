@@ -38,13 +38,6 @@ func main() {
 		},
 	)
 
-	client.AckTask(
-		ctx,
-		&pb.AckTaskRequest{
-			TaskId: resp.Task.Id,
-		},
-	)
-
 	if err != nil {
 		log.Fatal(err)
 	}
