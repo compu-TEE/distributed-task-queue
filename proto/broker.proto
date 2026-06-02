@@ -12,8 +12,20 @@ message PingResponse {
     string message = 1;
 }
 
+message StreamRequest {
+    string worker_id = 1;
+}
+
+message StreamMessage {
+    Task task = 1;
+}
+
 service BrokerService {
-    rpc Ping(PingRequest) returns (PingResponse);
+    rpc Ping(PingRequest)
+        returns (PingResponse);
+
+    rpc StreamTasks(StreamRequest)
+        returns (stream StreamMessage);
 
     rpc SubmitTask(SubmitTaskRequest)
         returns (SubmitTaskResponse);

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"time"
 
 	pb "dtq/proto"
 
@@ -14,9 +13,7 @@ import (
 func main() {
 	conn, err := grpc.NewClient(
 		"localhost:50051",
-		grpc.WithTransportCredentials(
-			insecure.NewCredentials(),
-		),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -25,30 +22,22 @@ func main() {
 
 	client := pb.NewBrokerServiceClient(conn)
 
-	ctx, cancel := context.WithTimeout(
+	stream, err := client.StreamTasks(
 		context.Background(),
-		5*time.Second,
-	)
-	defer cancel()
-
-	resp, err := client.PollTask(
-		ctx,
-		&pb.PollTaskRequest{
+		&pb.StreamRequest{
 			WorkerId: "worker-1",
 		},
 	)
-
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("Found:", resp.Found)
+	for {
+		msg, err := stream.Recv()
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	if resp.Found {
-		log.Printf(
-			"Task ID=%d Payload=%s\n",
-			resp.Task.Id,
-			resp.Task.Payload,
-		)
+		log.Printf("received %+v", msg.Task)
 	}
 }

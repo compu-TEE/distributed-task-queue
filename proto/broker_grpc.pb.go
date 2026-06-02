@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	BrokerService_Ping_FullMethodName       = "/broker.BrokerService/Ping"
-	BrokerService_SubmitTask_FullMethodName = "/broker.BrokerService/SubmitTask"
-	BrokerService_PollTask_FullMethodName   = "/broker.BrokerService/PollTask"
-	BrokerService_AckTask_FullMethodName    = "/broker.BrokerService/AckTask"
+	BrokerService_Ping_FullMethodName        = "/broker.BrokerService/Ping"
+	BrokerService_StreamTasks_FullMethodName = "/broker.BrokerService/StreamTasks"
+	BrokerService_SubmitTask_FullMethodName  = "/broker.BrokerService/SubmitTask"
+	BrokerService_PollTask_FullMethodName    = "/broker.BrokerService/PollTask"
+	BrokerService_AckTask_FullMethodName     = "/broker.BrokerService/AckTask"
 )
 
 // BrokerServiceClient is the client API for BrokerService service.
@@ -30,6 +31,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BrokerServiceClient interface {
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
+	StreamTasks(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamMessage], error)
 	SubmitTask(ctx context.Context, in *SubmitTaskRequest, opts ...grpc.CallOption) (*SubmitTaskResponse, error)
 	PollTask(ctx context.Context, in *PollTaskRequest, opts ...grpc.CallOption) (*PollTaskResponse, error)
 	AckTask(ctx context.Context, in *AckTaskRequest, opts ...grpc.CallOption) (*AckTaskResponse, error)
@@ -52,6 +54,25 @@ func (c *brokerServiceClient) Ping(ctx context.Context, in *PingRequest, opts ..
 	}
 	return out, nil
 }
+
+func (c *brokerServiceClient) StreamTasks(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamMessage], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &BrokerService_ServiceDesc.Streams[0], BrokerService_StreamTasks_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamRequest, StreamMessage]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type BrokerService_StreamTasksClient = grpc.ServerStreamingClient[StreamMessage]
 
 func (c *brokerServiceClient) SubmitTask(ctx context.Context, in *SubmitTaskRequest, opts ...grpc.CallOption) (*SubmitTaskResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -88,6 +109,7 @@ func (c *brokerServiceClient) AckTask(ctx context.Context, in *AckTaskRequest, o
 // for forward compatibility.
 type BrokerServiceServer interface {
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
+	StreamTasks(*StreamRequest, grpc.ServerStreamingServer[StreamMessage]) error
 	SubmitTask(context.Context, *SubmitTaskRequest) (*SubmitTaskResponse, error)
 	PollTask(context.Context, *PollTaskRequest) (*PollTaskResponse, error)
 	AckTask(context.Context, *AckTaskRequest) (*AckTaskResponse, error)
@@ -103,6 +125,9 @@ type UnimplementedBrokerServiceServer struct{}
 
 func (UnimplementedBrokerServiceServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedBrokerServiceServer) StreamTasks(*StreamRequest, grpc.ServerStreamingServer[StreamMessage]) error {
+	return status.Error(codes.Unimplemented, "method StreamTasks not implemented")
 }
 func (UnimplementedBrokerServiceServer) SubmitTask(context.Context, *SubmitTaskRequest) (*SubmitTaskResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SubmitTask not implemented")
@@ -151,6 +176,17 @@ func _BrokerService_Ping_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	return interceptor(ctx, in, info, handler)
 }
+
+func _BrokerService_StreamTasks_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(BrokerServiceServer).StreamTasks(m, &grpc.GenericServerStream[StreamRequest, StreamMessage]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type BrokerService_StreamTasksServer = grpc.ServerStreamingServer[StreamMessage]
 
 func _BrokerService_SubmitTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SubmitTaskRequest)
@@ -230,6 +266,12 @@ var BrokerService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _BrokerService_AckTask_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StreamTasks",
+			Handler:       _BrokerService_StreamTasks_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "proto/broker.proto",
 }

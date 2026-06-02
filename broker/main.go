@@ -74,8 +74,7 @@ func ack(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	queue.State.Mutex.Lock()
-	defer queue.State.Mutex.Unlock()
+
 	var ackReq AckRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&ackReq); err != nil {
@@ -83,21 +82,11 @@ func ack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, exists := queue.State.InProgressTasks[ackReq.TaskID]
-
-	if !exists {
-		http.Error(w, "Task not found", http.StatusNotFound)
+	if err := queue.AckTask(ackReq.TaskID); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	delete(queue.State.InProgressTasks, ackReq.TaskID)
-	task.Status = types.Completed
-	queue.State.CompletedTasks[task.ID] = task
-	err := persistence.AppendLog(fmt.Sprintf("ACK %d", task.ID))
-	if err != nil {
-		log.Println("Failed to persist ACK:", err)
-	}
-	log.Println("Task", task.ID, "marked completed")
 	w.WriteHeader(http.StatusOK)
 }
 
