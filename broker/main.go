@@ -1,6 +1,7 @@
 package main
 
 import (
+	grpc "dtq/internal/grpc"
 	"dtq/internal/persistence"
 	"dtq/internal/queue"
 	"dtq/internal/types"
@@ -137,12 +138,37 @@ func dlq(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(queue.State.DeadLetterTasks)
 }
 
+func workers(w http.ResponseWriter, r *http.Request) {
+	grpc.WorkersMu.RLock()
+	defer grpc.WorkersMu.RUnlock()
+
+	type WorkerResponse struct {
+		Status         string    `json:"status"`
+		TasksCompleted int       `json:"tasks_completed"`
+		LastHeartbeat  time.Time `json:"last_heartbeat"`
+	}
+
+	resp := make(map[string]WorkerResponse)
+
+	for id, worker := range grpc.ConnectedWorkers {
+		resp[id] = WorkerResponse{
+			Status:         worker.Info.Status,
+			TasksCompleted: worker.Info.TasksCompleted,
+			LastHeartbeat:  worker.Info.LastHeartbeat,
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
 func main() {
 	http.HandleFunc("/ping", ping)
 	http.HandleFunc("/task", task)
 	http.HandleFunc("/poll", poll)
 	http.HandleFunc("/ack", ack)
 	http.HandleFunc("/dlq", dlq)
+	http.HandleFunc("/workers", workers)
 	go visibilityTimeoutChecker()
 	replayTasks, err := persistence.ReplayLog()
 	if err != nil {

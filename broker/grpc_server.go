@@ -22,7 +22,7 @@ func StartGRPCServer() {
 		s,
 		&grpcserver.BrokerServer{},
 	)
-
+	go grpcserver.WorkerMonitor()
 	log.Println("gRPC server listening on :50051")
 
 	if err := s.Serve(lis); err != nil {

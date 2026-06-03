@@ -444,6 +444,7 @@ func (x *PollTaskResponse) GetFound() bool {
 type AckTaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        int32                  `protobuf:"varint,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	WorkerId      string                 `protobuf:"bytes,2,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -483,6 +484,13 @@ func (x *AckTaskRequest) GetTaskId() int32 {
 		return x.TaskId
 	}
 	return 0
+}
+
+func (x *AckTaskRequest) GetWorkerId() string {
+	if x != nil {
+		return x.WorkerId
+	}
+	return ""
 }
 
 type AckTaskResponse struct {
@@ -529,6 +537,94 @@ func (x *AckTaskResponse) GetSuccess() bool {
 	return false
 }
 
+type HeartbeatRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WorkerId      string                 `protobuf:"bytes,1,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HeartbeatRequest) Reset() {
+	*x = HeartbeatRequest{}
+	mi := &file_proto_broker_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HeartbeatRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HeartbeatRequest) ProtoMessage() {}
+
+func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_broker_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
+func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
+	return file_proto_broker_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *HeartbeatRequest) GetWorkerId() string {
+	if x != nil {
+		return x.WorkerId
+	}
+	return ""
+}
+
+type HeartbeatResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HeartbeatResponse) Reset() {
+	*x = HeartbeatResponse{}
+	mi := &file_proto_broker_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HeartbeatResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HeartbeatResponse) ProtoMessage() {}
+
+func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_broker_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
+func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
+	return file_proto_broker_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *HeartbeatResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 var File_proto_broker_proto protoreflect.FileDescriptor
 
 const file_proto_broker_proto_rawDesc = "" +
@@ -554,18 +650,24 @@ const file_proto_broker_proto_rawDesc = "" +
 	"\tworker_id\x18\x01 \x01(\tR\bworkerId\"J\n" +
 	"\x10PollTaskResponse\x12 \n" +
 	"\x04task\x18\x01 \x01(\v2\f.broker.TaskR\x04task\x12\x14\n" +
-	"\x05found\x18\x02 \x01(\bR\x05found\")\n" +
+	"\x05found\x18\x02 \x01(\bR\x05found\"F\n" +
 	"\x0eAckTaskRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\x05R\x06taskId\"+\n" +
+	"\atask_id\x18\x01 \x01(\x05R\x06taskId\x12\x1b\n" +
+	"\tworker_id\x18\x02 \x01(\tR\bworkerId\"+\n" +
 	"\x0fAckTaskResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2\xc1\x02\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"/\n" +
+	"\x10HeartbeatRequest\x12\x1b\n" +
+	"\tworker_id\x18\x01 \x01(\tR\bworkerId\"-\n" +
+	"\x11HeartbeatResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess2\x83\x03\n" +
 	"\rBrokerService\x121\n" +
 	"\x04Ping\x12\x13.broker.PingRequest\x1a\x14.broker.PingResponse\x12=\n" +
 	"\vStreamTasks\x12\x15.broker.StreamRequest\x1a\x15.broker.StreamMessage0\x01\x12C\n" +
 	"\n" +
 	"SubmitTask\x12\x19.broker.SubmitTaskRequest\x1a\x1a.broker.SubmitTaskResponse\x12=\n" +
 	"\bPollTask\x12\x17.broker.PollTaskRequest\x1a\x18.broker.PollTaskResponse\x12:\n" +
-	"\aAckTask\x12\x16.broker.AckTaskRequest\x1a\x17.broker.AckTaskResponseB\tZ\a./protob\x06proto3"
+	"\aAckTask\x12\x16.broker.AckTaskRequest\x1a\x17.broker.AckTaskResponse\x12@\n" +
+	"\tHeartbeat\x12\x18.broker.HeartbeatRequest\x1a\x19.broker.HeartbeatResponseB\tZ\a./protob\x06proto3"
 
 var (
 	file_proto_broker_proto_rawDescOnce sync.Once
@@ -579,7 +681,7 @@ func file_proto_broker_proto_rawDescGZIP() []byte {
 	return file_proto_broker_proto_rawDescData
 }
 
-var file_proto_broker_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_proto_broker_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_proto_broker_proto_goTypes = []any{
 	(*PingRequest)(nil),        // 0: broker.PingRequest
 	(*PingResponse)(nil),       // 1: broker.PingResponse
@@ -592,6 +694,8 @@ var file_proto_broker_proto_goTypes = []any{
 	(*PollTaskResponse)(nil),   // 8: broker.PollTaskResponse
 	(*AckTaskRequest)(nil),     // 9: broker.AckTaskRequest
 	(*AckTaskResponse)(nil),    // 10: broker.AckTaskResponse
+	(*HeartbeatRequest)(nil),   // 11: broker.HeartbeatRequest
+	(*HeartbeatResponse)(nil),  // 12: broker.HeartbeatResponse
 }
 var file_proto_broker_proto_depIdxs = []int32{
 	4,  // 0: broker.StreamMessage.task:type_name -> broker.Task
@@ -601,13 +705,15 @@ var file_proto_broker_proto_depIdxs = []int32{
 	5,  // 4: broker.BrokerService.SubmitTask:input_type -> broker.SubmitTaskRequest
 	7,  // 5: broker.BrokerService.PollTask:input_type -> broker.PollTaskRequest
 	9,  // 6: broker.BrokerService.AckTask:input_type -> broker.AckTaskRequest
-	1,  // 7: broker.BrokerService.Ping:output_type -> broker.PingResponse
-	3,  // 8: broker.BrokerService.StreamTasks:output_type -> broker.StreamMessage
-	6,  // 9: broker.BrokerService.SubmitTask:output_type -> broker.SubmitTaskResponse
-	8,  // 10: broker.BrokerService.PollTask:output_type -> broker.PollTaskResponse
-	10, // 11: broker.BrokerService.AckTask:output_type -> broker.AckTaskResponse
-	7,  // [7:12] is the sub-list for method output_type
-	2,  // [2:7] is the sub-list for method input_type
+	11, // 7: broker.BrokerService.Heartbeat:input_type -> broker.HeartbeatRequest
+	1,  // 8: broker.BrokerService.Ping:output_type -> broker.PingResponse
+	3,  // 9: broker.BrokerService.StreamTasks:output_type -> broker.StreamMessage
+	6,  // 10: broker.BrokerService.SubmitTask:output_type -> broker.SubmitTaskResponse
+	8,  // 11: broker.BrokerService.PollTask:output_type -> broker.PollTaskResponse
+	10, // 12: broker.BrokerService.AckTask:output_type -> broker.AckTaskResponse
+	12, // 13: broker.BrokerService.Heartbeat:output_type -> broker.HeartbeatResponse
+	8,  // [8:14] is the sub-list for method output_type
+	2,  // [2:8] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -624,7 +730,7 @@ func file_proto_broker_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_broker_proto_rawDesc), len(file_proto_broker_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

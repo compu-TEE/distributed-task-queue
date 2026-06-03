@@ -24,6 +24,7 @@ const (
 	BrokerService_SubmitTask_FullMethodName  = "/broker.BrokerService/SubmitTask"
 	BrokerService_PollTask_FullMethodName    = "/broker.BrokerService/PollTask"
 	BrokerService_AckTask_FullMethodName     = "/broker.BrokerService/AckTask"
+	BrokerService_Heartbeat_FullMethodName   = "/broker.BrokerService/Heartbeat"
 )
 
 // BrokerServiceClient is the client API for BrokerService service.
@@ -35,6 +36,7 @@ type BrokerServiceClient interface {
 	SubmitTask(ctx context.Context, in *SubmitTaskRequest, opts ...grpc.CallOption) (*SubmitTaskResponse, error)
 	PollTask(ctx context.Context, in *PollTaskRequest, opts ...grpc.CallOption) (*PollTaskResponse, error)
 	AckTask(ctx context.Context, in *AckTaskRequest, opts ...grpc.CallOption) (*AckTaskResponse, error)
+	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
 }
 
 type brokerServiceClient struct {
@@ -104,6 +106,16 @@ func (c *brokerServiceClient) AckTask(ctx context.Context, in *AckTaskRequest, o
 	return out, nil
 }
 
+func (c *brokerServiceClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HeartbeatResponse)
+	err := c.cc.Invoke(ctx, BrokerService_Heartbeat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BrokerServiceServer is the server API for BrokerService service.
 // All implementations must embed UnimplementedBrokerServiceServer
 // for forward compatibility.
@@ -113,6 +125,7 @@ type BrokerServiceServer interface {
 	SubmitTask(context.Context, *SubmitTaskRequest) (*SubmitTaskResponse, error)
 	PollTask(context.Context, *PollTaskRequest) (*PollTaskResponse, error)
 	AckTask(context.Context, *AckTaskRequest) (*AckTaskResponse, error)
+	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
 	mustEmbedUnimplementedBrokerServiceServer()
 }
 
@@ -137,6 +150,9 @@ func (UnimplementedBrokerServiceServer) PollTask(context.Context, *PollTaskReque
 }
 func (UnimplementedBrokerServiceServer) AckTask(context.Context, *AckTaskRequest) (*AckTaskResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AckTask not implemented")
+}
+func (UnimplementedBrokerServiceServer) Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Heartbeat not implemented")
 }
 func (UnimplementedBrokerServiceServer) mustEmbedUnimplementedBrokerServiceServer() {}
 func (UnimplementedBrokerServiceServer) testEmbeddedByValue()                       {}
@@ -242,6 +258,24 @@ func _BrokerService_AckTask_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BrokerService_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HeartbeatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BrokerServiceServer).Heartbeat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BrokerService_Heartbeat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BrokerServiceServer).Heartbeat(ctx, req.(*HeartbeatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BrokerService_ServiceDesc is the grpc.ServiceDesc for BrokerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -264,6 +298,10 @@ var BrokerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AckTask",
 			Handler:    _BrokerService_AckTask_Handler,
+		},
+		{
+			MethodName: "Heartbeat",
+			Handler:    _BrokerService_Heartbeat_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

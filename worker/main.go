@@ -1,79 +1,96 @@
 package main
 
 import (
-	"bytes"
-	"dtq/internal/types"
-	"encoding/json"
+	"context"
 	"log"
-	"net/http"
 	"os"
 	"time"
-)
 
-type AckRequest struct {
-	TaskID int `json:"task_id"`
-}
+	pb "dtq/proto"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+)
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime)
 
+	if len(os.Args) < 2 {
+		log.Fatal("usage: go run . <worker-id>")
+	}
+
 	workerID := os.Args[1]
 
+	conn, err := grpc.Dial(
+		"localhost:50051",
+		grpc.WithTransportCredentials(
+			insecure.NewCredentials(),
+		),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	client := pb.NewBrokerServiceClient(conn)
+
+	go func() {
+		_, err := client.Heartbeat(
+			context.Background(),
+			&pb.HeartbeatRequest{
+				WorkerId: workerID,
+			},
+		)
+
+		if err != nil {
+			log.Printf("heartbeat failed: %v", err)
+			return
+		}
+
+		log.Printf("sent initial heartbeat")
+	}()
+
+	stream, err := client.StreamTasks(
+		context.Background(),
+		&pb.StreamRequest{
+			WorkerId: workerID,
+		},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("Connected as %s", workerID)
+
 	for {
-		resp, err := http.Get("http://localhost:8080/poll?worker=" + workerID)
+		msg, err := stream.Recv()
 		if err != nil {
-			log.Println("Failed to poll broker:", err)
-			time.Sleep(1 * time.Second)
-			continue
+			log.Fatal(err)
 		}
 
-		// No tasks available
-		if resp.StatusCode == http.StatusNoContent {
-			resp.Body.Close()
-			time.Sleep(1 * time.Second)
-			continue
-		}
+		task := msg.Task
 
-		var task types.Task
-
-		err = json.NewDecoder(resp.Body).Decode(&task)
-		resp.Body.Close()
-
-		if err != nil {
-			log.Println("Failed to decode task:", err)
-			time.Sleep(1 * time.Second)
-			continue
-		}
-
-		log.Println(
-			"Executing task",
-			task.ID,
-			"on worker",
+		log.Printf(
+			"Executing task %d on worker %s Payload: %s",
+			task.Id,
 			workerID,
-			"Payload:",
 			task.Payload,
 		)
 
-		time.Sleep(3 * time.Second)
-		log.Println("Sending ACK for task", task.ID)
-		ack := AckRequest{
-			TaskID: task.ID,
-		}
-		jsonData, err := json.Marshal(ack)
-		if err != nil {
-			log.Println("Failed to marshal ACK:", err)
-			continue
-		}
+		time.Sleep(10 * time.Second)
 
-		ackResp, err := http.Post(
-			"http://localhost:8080/ack",
-			"application/json",
-			bytes.NewBuffer(jsonData),
+		log.Printf("Sending ACK for task %d", task.Id)
+
+		_, err = client.AckTask(
+			context.Background(),
+			&pb.AckTaskRequest{
+				TaskId:   task.Id,
+				WorkerId: workerID,
+			},
 		)
+
 		if err != nil {
-			log.Println("Failed to send ACK:", err)
-			continue
+			log.Printf("ACK failed: %v", err)
 		}
-		ackResp.Body.Close()
 	}
 }

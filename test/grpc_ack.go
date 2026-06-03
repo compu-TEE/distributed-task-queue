@@ -1,6 +1,6 @@
 package main
 
-import (
+/*import (
 	"context"
 	"log"
 	"time"
@@ -44,3 +44,4 @@ func main() {
 
 	log.Println("Success:", resp.Success)
 }
+*/

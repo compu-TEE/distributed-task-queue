@@ -35,6 +35,9 @@ service BrokerService {
 
     rpc AckTask(AckTaskRequest)
         returns (AckTaskResponse);
+
+    rpc Heartbeat(HeartbeatRequest)
+        returns (HeartbeatResponse);
 }
 
 message Task{
@@ -62,8 +65,17 @@ message PollTaskResponse {
 
 message AckTaskRequest {
     int32 task_id = 1;
+    string worker_id = 2;
 }
 
 message AckTaskResponse {
+    bool success = 1;
+}
+
+message HeartbeatRequest {
+    string worker_id = 1;
+}
+
+message HeartbeatResponse {
     bool success = 1;
 }

@@ -8,15 +8,23 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 )
 
 type BrokerServer struct {
 	pb.UnimplementedBrokerServiceServer
 }
 
+type WorkerInfo struct {
+	ID             string
+	Status         string
+	LastHeartbeat  time.Time
+	TasksCompleted int
+}
+
 type WorkerConnection struct {
-	WorkerID string
-	Stream   pb.BrokerService_StreamTasksServer
+	Info   WorkerInfo
+	Stream pb.BrokerService_StreamTasksServer
 }
 
 var (
@@ -39,6 +47,12 @@ func PushTask(workerID string, task types.Task) error {
 			Payload: task.Payload,
 		},
 	}
+
+	WorkersMu.Lock()
+	conn.Info.Status = "busy"
+	WorkersMu.Unlock()
+
+	log.Printf("%s -> busy", workerID)
 
 	if err := conn.Stream.Send(msg); err != nil {
 		return err
@@ -67,12 +81,17 @@ func (s *BrokerServer) StreamTasks(
 	log.Printf("%s connected to stream", req.WorkerId)
 
 	conn := &WorkerConnection{
-		WorkerID: req.WorkerId,
-		Stream:   stream,
+		Info: WorkerInfo{
+			ID:             req.WorkerId,
+			Status:         "idle",
+			LastHeartbeat:  time.Now(),
+			TasksCompleted: 0,
+		},
+		Stream: stream,
 	}
-
 	WorkersMu.Lock()
 	ConnectedWorkers[req.WorkerId] = conn
+	log.Printf("registered worker: %+v", conn.Info)
 	WorkersMu.Unlock()
 
 	go DispatchPendingTasks(req.WorkerId)
@@ -135,15 +154,22 @@ func (s *BrokerServer) SubmitTask(
 	var workerID string
 
 	WorkersMu.RLock()
-	for id := range ConnectedWorkers {
-		workerID = id
-		break
+	for id, worker := range ConnectedWorkers {
+		if worker.Info.Status == "idle" {
+			workerID = id
+			break
+		}
 	}
 	WorkersMu.RUnlock()
 
 	if workerID != "" {
-		if err := PushTask(workerID, task); err != nil {
-			log.Printf("push failed: %v", err)
+		assignedTask, found, err := queue.PollTask(workerID)
+		if err != nil {
+			log.Printf("assignment failed: %v", err)
+		} else if found {
+			if err := PushTask(workerID, *assignedTask); err != nil {
+				log.Printf("push failed: %v", err)
+			}
 		}
 	}
 
@@ -190,7 +216,61 @@ func (s *BrokerServer) AckTask(
 		}, err
 	}
 
+	WorkersMu.Lock()
+	if worker, ok := ConnectedWorkers[req.WorkerId]; ok {
+		worker.Info.Status = "idle"
+		worker.Info.TasksCompleted++
+		log.Printf(
+			"%s -> idle (completed=%d)",
+			req.WorkerId,
+			worker.Info.TasksCompleted,
+		)
+	}
+	WorkersMu.Unlock()
+
 	return &pb.AckTaskResponse{
 		Success: true,
 	}, nil
+}
+
+func (s *BrokerServer) Heartbeat(
+	ctx context.Context,
+	req *pb.HeartbeatRequest,
+) (*pb.HeartbeatResponse, error) {
+
+	WorkersMu.Lock()
+	defer WorkersMu.Unlock()
+
+	if worker, ok := ConnectedWorkers[req.WorkerId]; ok {
+		worker.Info.LastHeartbeat = time.Now()
+	}
+
+	return &pb.HeartbeatResponse{
+		Success: true,
+	}, nil
+}
+
+func WorkerMonitor() {
+	for {
+		log.Println("worker monitor tick")
+
+		WorkersMu.Lock()
+
+		for id, worker := range ConnectedWorkers {
+			log.Printf(
+				"%s age=%v",
+				id,
+				time.Since(worker.Info.LastHeartbeat),
+			)
+
+			if time.Since(worker.Info.LastHeartbeat) > 15*time.Second {
+				log.Printf("%s timed out", id)
+				delete(ConnectedWorkers, id)
+			}
+		}
+
+		WorkersMu.Unlock()
+
+		time.Sleep(5 * time.Second)
+	}
 }
