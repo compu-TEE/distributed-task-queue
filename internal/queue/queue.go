@@ -9,20 +9,28 @@ import (
 	"time"
 )
 
+type Metrics struct {
+	TasksSubmitted int
+	TasksCompleted int
+	TotalRetries   int
+}
+
 type BrokerState struct {
-	PendingTasks    map[int]types.Task
-	InProgressTasks map[int]types.Task
-	CompletedTasks  map[int]types.Task
-	DeadLetterTasks map[int]types.Task
+	PendingTasks    map[int64]types.Task
+	InProgressTasks map[int64]types.Task
+	CompletedTasks  map[int64]types.Task
+	DeadLetterTasks map[int64]types.Task
+
+	Metrics Metrics
 
 	Mutex sync.Mutex
 }
 
 var State = BrokerState{
-	PendingTasks:    make(map[int]types.Task),
-	InProgressTasks: make(map[int]types.Task),
-	CompletedTasks:  make(map[int]types.Task),
-	DeadLetterTasks: make(map[int]types.Task),
+	PendingTasks:    make(map[int64]types.Task),
+	InProgressTasks: make(map[int64]types.Task),
+	CompletedTasks:  make(map[int64]types.Task),
+	DeadLetterTasks: make(map[int64]types.Task),
 }
 
 func AddTask(newTask types.Task) error {
@@ -46,6 +54,7 @@ func AddTask(newTask types.Task) error {
 	newTask.MaxRetries = 3
 
 	State.PendingTasks[newTask.ID] = newTask
+	State.Metrics.TasksSubmitted++
 
 	err := persistence.AppendLog(
 		fmt.Sprintf("ENQUEUE %d %s", newTask.ID, newTask.Payload),
@@ -101,7 +110,7 @@ func PollTask(workerID string) (*types.Task, bool, error) {
 	return &task, true, nil
 }
 
-func AckTask(taskID int) error {
+func AckTask(taskID int64) error {
 	State.Mutex.Lock()
 	defer State.Mutex.Unlock()
 
@@ -114,6 +123,7 @@ func AckTask(taskID int) error {
 
 	task.Status = types.Completed
 	State.CompletedTasks[task.ID] = task
+	State.Metrics.TasksCompleted++
 
 	err := persistence.AppendLog(
 		fmt.Sprintf("ACK %d", task.ID),

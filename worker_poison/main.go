@@ -82,23 +82,11 @@ func main() {
 		task := msg.Task
 
 		log.Printf(
-			"Executing task %d on worker %s Payload: %s",
+			"POISON WORKER received task %d",
 			task.Id,
-			workerID,
-			task.Payload,
 		)
 
-		time.Sleep(10 * time.Second)
-
-		log.Printf("Sending ACK for task %d", task.Id)
-
-		_, err = client.AckTask(
-			context.Background(),
-			&pb.AckTaskRequest{
-				TaskId:   task.Id,
-				WorkerId: workerID,
-			},
-		)
+		time.Sleep(60 * time.Second)
 
 		if err != nil {
 			log.Printf("ACK failed: %v", err)

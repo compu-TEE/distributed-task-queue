@@ -13,7 +13,26 @@ import (
 )
 
 type AckRequest struct {
-	TaskID int `json:"task_id"`
+	TaskID int64 `json:"task_id"`
+}
+
+var BrokerStartTime = time.Now()
+
+type MetricsResponse struct {
+	UptimeSeconds int64 `json:"uptime_seconds"`
+
+	PendingTasks    int `json:"pending_tasks"`
+	InProgressTasks int `json:"in_progress_tasks"`
+	CompletedTasks  int `json:"completed_tasks"`
+	DeadLetterTasks int `json:"dead_letter_tasks"`
+
+	ConnectedWorkers int `json:"connected_workers"`
+	BusyWorkers      int `json:"busy_workers"`
+	IdleWorkers      int `json:"idle_workers"`
+
+	TotalRetries   int `json:"total_retries"`
+	TasksSubmitted int `json:"tasks_submitted"`
+	TasksCompleted int `json:"tasks_completed"`
 }
 
 func ping(w http.ResponseWriter, r *http.Request) {
@@ -93,11 +112,12 @@ func ack(w http.ResponseWriter, r *http.Request) {
 
 func visibilityTimeoutChecker() {
 	for {
+		needDispatch := false
 		queue.State.Mutex.Lock()
 		for id, task := range queue.State.InProgressTasks {
 			if time.Since(task.AssignedAt) > 10*time.Second {
 				task.RetryCount++
-
+				queue.State.Metrics.TotalRetries++
 				log.Println("Task", id, "Retry count:", task.RetryCount, task.MaxRetries)
 				err := persistence.AppendLog(fmt.Sprintf("RETRY %d %d", task.ID, task.RetryCount))
 				if err != nil {
@@ -115,17 +135,30 @@ func visibilityTimeoutChecker() {
 					}
 					log.Println("Task", id, "moved to dead letter queue")
 				} else {
+					timedOutWorker := task.WorkerID
+
 					task.Status = types.Pending
 					task.AssignedAt = time.Time{}
 					task.WorkerID = ""
 
 					queue.State.PendingTasks[id] = task
 
+					grpc.WorkersMu.Lock()
+					if worker, ok := grpc.ConnectedWorkers[timedOutWorker]; ok {
+						worker.Info.Status = "idle"
+					}
+					grpc.WorkersMu.Unlock()
+
 					log.Println("Task", id, "requeued")
+					needDispatch = true
+
 				}
 			}
 		}
 		queue.State.Mutex.Unlock()
+		if needDispatch {
+			go grpc.DispatchToIdleWorkers()
+		}
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -162,6 +195,49 @@ func workers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+func metrics(w http.ResponseWriter, r *http.Request) {
+	queue.State.Mutex.Lock()
+	defer queue.State.Mutex.Unlock()
+	resp := MetricsResponse{
+		UptimeSeconds: int64(time.Since(BrokerStartTime).Seconds()),
+
+		PendingTasks:    len(queue.State.PendingTasks),
+		InProgressTasks: len(queue.State.InProgressTasks),
+		CompletedTasks:  len(queue.State.CompletedTasks),
+		DeadLetterTasks: len(queue.State.DeadLetterTasks),
+
+		TotalRetries:   queue.State.Metrics.TotalRetries,
+		TasksSubmitted: queue.State.Metrics.TasksSubmitted,
+		TasksCompleted: queue.State.Metrics.TasksCompleted,
+	}
+
+	grpc.WorkersMu.RLock()
+
+	resp.ConnectedWorkers = len(grpc.ConnectedWorkers)
+
+	for _, worker := range grpc.ConnectedWorkers {
+		switch worker.Info.Status {
+		case "busy":
+			resp.BusyWorkers++
+		case "idle":
+			resp.IdleWorkers++
+		}
+	}
+
+	grpc.WorkersMu.RUnlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func health(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "healthy",
+	})
+}
+
 func main() {
 	http.HandleFunc("/ping", ping)
 	http.HandleFunc("/task", task)
@@ -169,6 +245,8 @@ func main() {
 	http.HandleFunc("/ack", ack)
 	http.HandleFunc("/dlq", dlq)
 	http.HandleFunc("/workers", workers)
+	http.HandleFunc("/metrics", metrics)
+	http.HandleFunc("/health", health)
 	go visibilityTimeoutChecker()
 	replayTasks, err := persistence.ReplayLog()
 	if err != nil {

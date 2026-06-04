@@ -13,7 +13,7 @@ type PingResponse struct {
 }
 
 type Task struct {
-	ID         int       `json:"id"`
+	ID         int64     `json:"id"`
 	Payload    string    `json:"payload"`
 	Status     string    `json:"status"`
 	AssignedAt time.Time `json:"assigned_at,omitempty"`

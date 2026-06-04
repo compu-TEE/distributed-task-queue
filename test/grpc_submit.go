@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"time"
 
 	pb "dtq/proto"
 
@@ -22,17 +23,24 @@ func main() {
 
 	client := pb.NewBrokerServiceClient(conn)
 
-	resp, err := client.SubmitTask(
-		context.Background(),
-		&pb.SubmitTaskRequest{
-			Id:      1,
-			Payload: "hello",
-		},
-	)
+	for i := 111; i < 120; i++ {
+		id := time.Now().UnixNano()
 
-	if err != nil {
-		log.Fatal(err)
+		resp, err := client.SubmitTask(
+			context.Background(),
+			&pb.SubmitTaskRequest{
+				Id:      id,
+				Payload: "hello",
+			},
+		)
+
+		if err != nil {
+			log.Printf("task %d failed: %v", i+1, err)
+			continue
+		}
+
+		log.Printf("task %d submitted (success=%v)", i+1, resp.Success)
+
+		time.Sleep(1 * time.Millisecond)
 	}
-
-	log.Println("success:", resp.Success)
 }

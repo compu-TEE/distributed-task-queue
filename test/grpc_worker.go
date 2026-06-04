@@ -1,6 +1,6 @@
 package main
 
-import (
+/*import (
 	"context"
 	"log"
 
@@ -41,3 +41,4 @@ func main() {
 		log.Printf("received %+v", msg.Task)
 	}
 }
+*/

@@ -41,12 +41,12 @@ service BrokerService {
 }
 
 message Task{
-    int32 id = 1;
+    int64 id = 1;
     string payload = 2;
 }
 
 message SubmitTaskRequest{
-    int32 id = 1;
+    int64 id = 1;
     string payload = 2;
 }
 
@@ -64,7 +64,7 @@ message PollTaskResponse {
 }
 
 message AckTaskRequest {
-    int32 task_id = 1;
+    int64 task_id = 1;
     string worker_id = 2;
 }
 

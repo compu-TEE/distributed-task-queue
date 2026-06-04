@@ -199,7 +199,7 @@ func (x *StreamMessage) GetTask() *Task {
 
 type Task struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Payload       string                 `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -235,7 +235,7 @@ func (*Task) Descriptor() ([]byte, []int) {
 	return file_proto_broker_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *Task) GetId() int32 {
+func (x *Task) GetId() int64 {
 	if x != nil {
 		return x.Id
 	}
@@ -251,7 +251,7 @@ func (x *Task) GetPayload() string {
 
 type SubmitTaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Payload       string                 `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -287,7 +287,7 @@ func (*SubmitTaskRequest) Descriptor() ([]byte, []int) {
 	return file_proto_broker_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *SubmitTaskRequest) GetId() int32 {
+func (x *SubmitTaskRequest) GetId() int64 {
 	if x != nil {
 		return x.Id
 	}
@@ -443,7 +443,7 @@ func (x *PollTaskResponse) GetFound() bool {
 
 type AckTaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        int32                  `protobuf:"varint,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	TaskId        int64                  `protobuf:"varint,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
 	WorkerId      string                 `protobuf:"bytes,2,opt,name=worker_id,json=workerId,proto3" json:"worker_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -479,7 +479,7 @@ func (*AckTaskRequest) Descriptor() ([]byte, []int) {
 	return file_proto_broker_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *AckTaskRequest) GetTaskId() int32 {
+func (x *AckTaskRequest) GetTaskId() int64 {
 	if x != nil {
 		return x.TaskId
 	}
@@ -639,10 +639,10 @@ const file_proto_broker_proto_rawDesc = "" +
 	"\rStreamMessage\x12 \n" +
 	"\x04task\x18\x01 \x01(\v2\f.broker.TaskR\x04task\"0\n" +
 	"\x04Task\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x18\n" +
 	"\apayload\x18\x02 \x01(\tR\apayload\"=\n" +
 	"\x11SubmitTaskRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x18\n" +
 	"\apayload\x18\x02 \x01(\tR\apayload\".\n" +
 	"\x12SubmitTaskResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\".\n" +
@@ -652,7 +652,7 @@ const file_proto_broker_proto_rawDesc = "" +
 	"\x04task\x18\x01 \x01(\v2\f.broker.TaskR\x04task\x12\x14\n" +
 	"\x05found\x18\x02 \x01(\bR\x05found\"F\n" +
 	"\x0eAckTaskRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\x05R\x06taskId\x12\x1b\n" +
+	"\atask_id\x18\x01 \x01(\x03R\x06taskId\x12\x1b\n" +
 	"\tworker_id\x18\x02 \x01(\tR\bworkerId\"+\n" +
 	"\x0fAckTaskResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"/\n" +

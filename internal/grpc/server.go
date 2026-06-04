@@ -43,9 +43,13 @@ func PushTask(workerID string, task types.Task) error {
 
 	msg := &pb.StreamMessage{
 		Task: &pb.Task{
-			Id:      int32(task.ID),
+			Id:      int64(task.ID),
 			Payload: task.Payload,
 		},
+	}
+
+	if err := conn.Stream.Send(msg); err != nil {
+		return err
 	}
 
 	WorkersMu.Lock()
@@ -53,10 +57,6 @@ func PushTask(workerID string, task types.Task) error {
 	WorkersMu.Unlock()
 
 	log.Printf("%s -> busy", workerID)
-
-	if err := conn.Stream.Send(msg); err != nil {
-		return err
-	}
 
 	log.Printf("pushed task %d to %s", task.ID, workerID)
 
@@ -110,28 +110,27 @@ func (s *BrokerServer) StreamTasks(
 }
 
 func DispatchPendingTasks(workerID string) {
-	for {
-		task, found, err := queue.PollTask(workerID)
-		if err != nil {
-			log.Printf("dispatch failed: %v", err)
-			return
-		}
+	task, found, err := queue.PollTask(workerID)
 
-		if !found {
-			return
-		}
-
-		if err := PushTask(workerID, *task); err != nil {
-			log.Printf("push failed: %v", err)
-			return
-		}
-
-		log.Printf(
-			"dispatched pending task %d to %s",
-			task.ID,
-			workerID,
-		)
+	if err != nil {
+		log.Printf("dispatch failed: %v", err)
+		return
 	}
+
+	if !found {
+		return
+	}
+
+	if err := PushTask(workerID, *task); err != nil {
+		log.Printf("push failed: %v", err)
+		return
+	}
+
+	log.Printf(
+		"dispatched pending task %d to %s",
+		task.ID,
+		workerID,
+	)
 }
 
 func (s *BrokerServer) SubmitTask(
@@ -140,7 +139,7 @@ func (s *BrokerServer) SubmitTask(
 ) (*pb.SubmitTaskResponse, error) {
 
 	task := types.Task{
-		ID:      int(req.Id),
+		ID:      int64(req.Id),
 		Payload: req.Payload,
 	}
 
@@ -197,7 +196,7 @@ func (s *BrokerServer) PollTask(
 	return &pb.PollTaskResponse{
 		Found: true,
 		Task: &pb.Task{
-			Id:      int32(task.ID),
+			Id:      int64(task.ID),
 			Payload: task.Payload,
 		},
 	}, nil
@@ -208,7 +207,7 @@ func (s *BrokerServer) AckTask(
 	req *pb.AckTaskRequest,
 ) (*pb.AckTaskResponse, error) {
 
-	err := queue.AckTask(int(req.TaskId))
+	err := queue.AckTask(int64(req.TaskId))
 
 	if err != nil {
 		return &pb.AckTaskResponse{
@@ -217,16 +216,26 @@ func (s *BrokerServer) AckTask(
 	}
 
 	WorkersMu.Lock()
+
+	workerExists := false
+
 	if worker, ok := ConnectedWorkers[req.WorkerId]; ok {
 		worker.Info.Status = "idle"
 		worker.Info.TasksCompleted++
+		workerExists = true
+
 		log.Printf(
 			"%s -> idle (completed=%d)",
 			req.WorkerId,
 			worker.Info.TasksCompleted,
 		)
 	}
+
 	WorkersMu.Unlock()
+
+	if workerExists {
+		go DispatchPendingTasks(req.WorkerId)
+	}
 
 	return &pb.AckTaskResponse{
 		Success: true,
@@ -272,5 +281,23 @@ func WorkerMonitor() {
 		WorkersMu.Unlock()
 
 		time.Sleep(5 * time.Second)
+	}
+}
+
+func DispatchToIdleWorkers() {
+	WorkersMu.RLock()
+
+	var idleWorkers []string
+
+	for id, worker := range ConnectedWorkers {
+		if worker.Info.Status == "idle" {
+			idleWorkers = append(idleWorkers, id)
+		}
+	}
+
+	WorkersMu.RUnlock()
+
+	for _, id := range idleWorkers {
+		go DispatchPendingTasks(id)
 	}
 }
