@@ -21,8 +21,13 @@ func main() {
 
 	workerID := os.Args[1]
 
+	brokerAddr := os.Getenv("BROKER_ADDR")
+	if brokerAddr == "" {
+		brokerAddr = "localhost:50051"
+	}
+
 	conn, err := grpc.Dial(
-		"localhost:50051",
+		brokerAddr,
 		grpc.WithTransportCredentials(
 			insecure.NewCredentials(),
 		),

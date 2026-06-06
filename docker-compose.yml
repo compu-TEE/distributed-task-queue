@@ -1,0 +1,52 @@
+services:
+  broker:
+    build:
+      context: .
+      dockerfile: broker/Dockerfile
+
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+
+  worker1:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+
+    environment:
+      BROKER_ADDR: broker:50051
+
+    command: ["worker-1"]
+
+    depends_on:
+      - broker
+
+  worker2:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment:
+      BROKER_ADDR: broker:50051
+    command: ["worker-2"]
+    depends_on:
+      - broker
+
+  worker3:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment:
+      BROKER_ADDR: broker:50051
+    command: ["worker-3"]
+    depends_on:
+      - broker
+
+  worker4:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment:
+      BROKER_ADDR: broker:50051
+    command: ["worker-4"]
+    depends_on:
+      - broker
